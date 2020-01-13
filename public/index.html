@@ -20,41 +20,42 @@
     	#msg{ display:none; border:1px solid gray; margin:10px; padding:10px; width:600px;}
     </style>
     <!-- The core Firebase JS SDK is always required and must be listed first -->
-		<script src="https://www.gstatic.com/firebasejs/7.6.2/firebase-app.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/7.6.2/firebase-app.js"></script>
 
-		<!-- TODO: Add SDKs for Firebase products that you want to use
-		     https://firebase.google.com/docs/web/setup#available-libraries -->
-		<script src="https://www.gstatic.com/firebasejs/7.6.2/firebase-analytics.js"></script>
-		
-		<script src="https://www.gstatic.com/firebasejs/7.6.2/firebase-firestore.js"></script>
+	<!-- TODO: Add SDKs for Firebase products that you want to use
+	     https://firebase.google.com/docs/web/setup#available-libraries -->
+	<script src="https://www.gstatic.com/firebasejs/7.6.2/firebase-analytics.js"></script>
+	
+	<script src="https://www.gstatic.com/firebasejs/7.6.2/firebase-firestore.js"></script>
 
-		<script>
-		  // Your web app's Firebase configuration
-		  var firebaseConfig = {
-		    apiKey: "AIzaSyCTxPujY5WP-ZNHYyXT4MuX-tmvCWP_gaE",
-		    authDomain: "shosekiappproject.firebaseapp.com",
-		    databaseURL: "https://shosekiappproject.firebaseio.com",
-		    projectId: "shosekiappproject",
-		    storageBucket: "shosekiappproject.appspot.com",
-		    messagingSenderId: "596910785917",
-		    appId: "1:596910785917:web:2b28fca01a89957a95b814",
-		    measurementId: "G-H7ZPPQ3VB3"
-		  };
-		  // Initialize Firebase
-		  firebase.initializeApp(firebaseConfig);
-		  firebase.analytics();
-		</script>		
+	<script>
+	  // Your web app's Firebase configuration
+	  var firebaseConfig = {
+	    apiKey: "AIzaSyCTxPujY5WP-ZNHYyXT4MuX-tmvCWP_gaE",
+	    authDomain: "shosekiappproject.firebaseapp.com",
+	    databaseURL: "https://shosekiappproject.firebaseio.com",
+	    projectId: "shosekiappproject",
+	    storageBucket: "shosekiappproject.appspot.com",
+	    messagingSenderId: "596910785917",
+	    appId: "1:596910785917:web:2b28fca01a89957a95b814",
+	    measurementId: "G-H7ZPPQ3VB3"
+	  };
+	  // Initialize Firebase
+	  firebase.initializeApp(firebaseConfig);
+	  firebase.analytics();
+	</script>		
   </head>
 <body>
   <h1>Hello FireStore</h1>
   <form>
+    <input id="ISBN" type="text"></input>
     <button id="addData" type="button">追加</button><br>
     <button id="readData" type="button">参照</button><br>
     <button id="updateData" type="button">更新</button><br>
     <button id="removeData" type="button">削除</button><br>
   </form>
   <div id="msg"></div>
-
+  <script src="../functions/googlebooks.js"></script>
   <script>
     // Firestoreのインスタンス作成
     var db = firebase.firestore();
@@ -63,28 +64,55 @@
      * データの追加
      **/
     document.querySelector("#addData").addEventListener("click", ()=>{
-      db.collection("users").add({
-        name: "hebishima shogo",
-        mail: "s.hebishima@futureantiques.co.jp"
-      })
-      .then((doc) => {
-        LIST.push(doc.id);
-        showMessage(`追加に成功しました (${doc.id})`);
-      })
-      .catch((error) => {
-        showMessage(`追加に失敗しました (${error})`);
+
+      var Isbn = document.getElementById("ISBN").value;
+      get(Isbn).
+      then(function(response){
+          console.log('response from GET request')
+          console.log(response)
+          // set data
+          // set(response);
+          // destroy autocomplete instance if it exists
+          //$('#general').autocomplete('search', '');
+
+          //db.collection("users").add({
+          //name: "hebishima shogo",
+          //mail: "s.hebishima@futureantiques.co.jp"
+          for (var i=0, n=response.items.length; i<n; i++) {
+              var item = response.items[i];
+              db.collection("books").add({
+                title: item.volumeInfo.title,
+                image: item.volumeInfo.imageLinks.thumbnail,
+                link: item.volumeInfo.previewLink
+              })
+              .then((doc) => {
+                LIST.push(doc.id);
+                showMessage(`追加に成功しました (${doc.id})`);
+              })
+              .catch((error) => {
+                showMessage(`追加に失敗しました (${error})`);
+              });
+          }
+
       });
     });
     /**
      * データの参照
      **/
      document.querySelector("#readData").addEventListener("click", ()=>{
-      db.collection("users").get().then((querySnapshot) => {
+
+      //var img = document.createElement('img');
+ 
+      db.collection("books").get().then((querySnapshot) => {
         var buff = [];
         var html = "<ul>";
         querySnapshot.forEach((doc) => {
           var data = doc.data();
-          html += `<li>${doc.id} => ${data.name}, ${data.mail}</li>`;
+          html += `<a href=${data.link}>`;
+          html += `<img src=${data.image}>`;
+          html += `</a>`;
+          html += '<div></div>';
+          html += `<li>${data.title}</li>`;
           buff.push(doc.id);
         });
         html += "</ul>";
@@ -117,7 +145,7 @@
       // リストにない場合は何もしない
       if(LIST.length === 0)
         return(true);
-      db.collection("users").doc(LIST.pop()).delete().then(() => {
+      db.collection("books").doc(LIST.pop()).delete().then(() => {
         showMessage("削除しました");
       })
       .catch((error) => {
